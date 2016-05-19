@@ -6,6 +6,7 @@ import android.util.Base64;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 
+import java.io.IOException;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -23,9 +24,9 @@ import de.tum.in.tumcampusapp.models.DeviceRegister;
 import de.tum.in.tumcampusapp.models.TUMCabeClient;
 import de.tum.in.tumcampusapp.models.TUMCabeStatus;
 import de.tum.in.tumcampusapp.services.GcmIdentificationService;
-import retrofit.Callback;
-import retrofit.RetrofitError;
-import retrofit.client.Response;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
  * This provides methods to authenticate this app installation with the tumcabe server and other instances requiring a pki
@@ -43,6 +44,7 @@ public class AuthenticationManager {
     /**
      * Gets an unique id that identifies this device
      * should only reset after a reinstall or wiping of the settings
+     *
      * @return Unique device id
      */
     public static synchronized String getDeviceID(Context context) {
@@ -59,6 +61,7 @@ public class AuthenticationManager {
 
     /**
      * Get the private key as string
+     *
      * @return
      * @throws NoPrivateKey
      */
@@ -72,6 +75,7 @@ public class AuthenticationManager {
 
     /**
      * Gets the public key as string
+     *
      * @return
      * @throws NoPublicKey
      */
@@ -100,6 +104,7 @@ public class AuthenticationManager {
 
     /**
      * Sign a message with the currently stored private key
+     *
      * @param data String to be signed
      * @return signature used to verify this request
      * @throws NoPrivateKey
@@ -115,12 +120,12 @@ public class AuthenticationManager {
      * @return true if a private key is present
      */
     public boolean generatePrivateKey(ChatMember member) {
-        if(this.generatePrivateKey()) {
+        if (this.generatePrivateKey()) {
             try {
                 TUMCabeClient.getInstance(mContext).uploadPublicKey(member.getId(), new ChatPublicKey(this.getPublicKeyString()));
                 return true;
-            } catch (NoPublicKey noPublicKey) {
-            } catch (RetrofitError e) {
+            } catch (NoPublicKey | IOException e) {
+                // NOP
             }
         }
 
@@ -143,8 +148,8 @@ public class AuthenticationManager {
 
             // If we already have one don't create a new one
             return true;
-        } catch (NoPrivateKey noPrivateKey) {
-        } catch (NoPublicKey noPublicKey) {
+        } catch (NoPrivateKey | NoPublicKey noKey) {
+            // NOP
         }
 
         //Something went wrong, generate a new pair
@@ -172,11 +177,12 @@ public class AuthenticationManager {
 
     /**
      * Try to upload the public key to the server and remember that state
+     *
      * @param publicKey
      */
-    private void uploadKey(String publicKey){
+    private void uploadKey(String publicKey) {
         //If we already uploaded it we don't need to redo that
-        if(Utils.getInternalSettingBool(mContext, Const.PUBLIC_KEY_UPLOADED, false)){
+        if (Utils.getInternalSettingBool(mContext, Const.PUBLIC_KEY_UPLOADED, false)) {
             this.tryToUploadGcmToken();
             return;
         }
@@ -188,9 +194,10 @@ public class AuthenticationManager {
             TUMCabeClient.getInstance(mContext).deviceRegister(dr, new Callback<TUMCabeStatus>() {
 
                 @Override
-                public void success(TUMCabeStatus s, Response response) {
+                public void onResponse(Call<TUMCabeStatus> call, Response<TUMCabeStatus> response) {
+                    TUMCabeStatus s = response.body();
                     Utils.log(s.getStatus());
-                    Utils.log(response.getBody().toString());
+                    Utils.log(response.body().toString());
 
                     //Remember that we are done
                     Utils.setInternalSetting(mContext, Const.PUBLIC_KEY_UPLOADED, true);
@@ -199,19 +206,16 @@ public class AuthenticationManager {
                 }
 
                 @Override
-                public void failure(RetrofitError error) {
+                public void onFailure(Call<TUMCabeStatus> call, Throwable t) {
                     Utils.setInternalSetting(mContext, Const.PUBLIC_KEY_UPLOADED, false);
                 }
             });
-        } catch (RetrofitError e) {
-            Utils.log(e, "Failure uploading public key");
-            Utils.setInternalSetting(mContext, Const.PUBLIC_KEY_UPLOADED, false);
         } catch (NoPrivateKey noPrivateKey) {
             this.clearKeys();
         }
     }
 
-    private void tryToUploadGcmToken(){
+    private void tryToUploadGcmToken() {
         // Check device for Play Services APK. If check succeeds, proceed with GCM registration.
         // Can only be done after the public key has been uploaded
         if (Utils.getInternalSettingBool(mContext, Const.PUBLIC_KEY_UPLOADED, false) && GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(mContext) == ConnectionResult.SUCCESS) {
@@ -222,15 +226,17 @@ public class AuthenticationManager {
 
     /**
      * Convert a byte array to a more manageable base64 string to store it in the preferences
+     *
      * @param key
      * @return
      */
-    private String keyToBase64(byte[] key){
+    private String keyToBase64(byte[] key) {
         return Base64.encodeToString(key, Base64.DEFAULT);
     }
 
     /**
      * Generates a keypair with the given algorithm & size
+     *
      * @return
      * @throws NoSuchAlgorithmException
      */
@@ -252,8 +258,8 @@ public class AuthenticationManager {
     /**
      * Reset all keys generated - this should actually never happen
      */
-    private void clearKeys(){
-        this.saveKeys("","");
+    private void clearKeys() {
+        this.saveKeys("", "");
         Utils.setInternalSetting(mContext, Const.PUBLIC_KEY_UPLOADED, false);
     }
 }

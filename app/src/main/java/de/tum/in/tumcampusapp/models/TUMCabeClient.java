@@ -2,63 +2,56 @@ package de.tum.in.tumcampusapp.models;
 
 import android.content.Context;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.net.ssl.SSLPeerUnverifiedException;
 
 import de.tum.in.tumcampusapp.auxiliary.AuthenticationManager;
 import de.tum.in.tumcampusapp.auxiliary.Const;
 import okhttp3.CertificatePinner;
+import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
-import retrofit.Callback;
-import retrofit.ErrorHandler;
-import retrofit.RequestInterceptor;
-import retrofit.RestAdapter;
-import retrofit.RetrofitError;
-import retrofit.client.OkClient;
-import retrofit.http.Body;
-import retrofit.http.GET;
-import retrofit.http.POST;
-import retrofit.http.PUT;
-import retrofit.http.Path;
+import okhttp3.Request;
+import okhttp3.Response;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+import retrofit2.http.Body;
+import retrofit2.http.GET;
+import retrofit2.http.POST;
+import retrofit2.http.PUT;
+import retrofit2.http.Path;
 
 public class TUMCabeClient {
 
     private static final String API_HOSTNAME = Const.API_HOSTNAME;
-    private static final String API_BASEURL = "/Api";
-    private static final String API_CHAT = "/chat/";
+    private static final String API_BASEURL = "/Api/";
+    private static final String API_CHAT = "chat/";
     private static final String API_CHAT_ROOMS = API_CHAT + "rooms/";
     private static final String API_CHAT_MEMBERS = API_CHAT + "members/";
-    private static final String API_SESSION = "/session/";
-    private static final String API_NEWS = "/news/";
-    private static final String API_MENSA = "/mensen/";
-    private static final String API_CURRICULA = "/curricula/";
-    private static final String API_REPORT = "/report/";
-    private static final String API_STATISTICS = "/statistics/";
-    private static final String API_CINEMA = "/kino/";
-    private static final String API_NOTIFICATIONS = "/notifications/";
-    private static final String API_LOCATIONS = "/locations/";
-    private static final String API_DEVICE = "/device/";
+    private static final String API_SESSION = "session/";
+    private static final String API_NEWS = "news/";
+    private static final String API_MENSA = "mensen/";
+    private static final String API_CURRICULA = "curricula/";
+    private static final String API_REPORT = "report/";
+    private static final String API_STATISTICS = "statistics/";
+    private static final String API_CINEMA = "kino/";
+    private static final String API_NOTIFICATIONS = "notifications/";
+    private static final String API_LOCATIONS = "locations/";
+    private static final String API_DEVICE = "device/";
 
 
     private static TUMCabeClient instance = null;
     private static Context context = null;
-    final RequestInterceptor requestInterceptor = new RequestInterceptor() {
+    final Interceptor requestInterceptor = new Interceptor() {
         @Override
-        public void intercept(RequestFacade request) {
-            request.addHeader("X-DEVICE-ID", AuthenticationManager.getDeviceID(TUMCabeClient.context));
-        }
-    };
-    final ErrorHandler errorHandler = new ErrorHandler() {
-        @Override
-        public Throwable handleError(RetrofitError cause) {
-            Throwable t = cause.getCause();
-            if (t instanceof SSLPeerUnverifiedException) {
-                //TODO show a error message
-                //Toast.makeText(context, t.toString(), Toast.LENGTH_LONG).show();
-            }
-            return t;
+        public Response intercept(Chain chain) throws IOException {
+            Request original = chain.request();
+            return chain.proceed(original.newBuilder()
+                    .addHeader("X-DEVICE-ID", AuthenticationManager.getDeviceID(TUMCabeClient.context))
+                    .build()
+            );
         }
     };
     private TUMCabeAPIService service = null;
@@ -73,13 +66,13 @@ public class TUMCabeClient {
                 .build();
         final OkHttpClient client = new OkHttpClient.Builder()
                 .certificatePinner(certificatePinner)
+                .addInterceptor(requestInterceptor)
                 .build();
 
-        RestAdapter restAdapter = new RestAdapter.Builder()
-                .setClient(new OkClient(client))
-                .setEndpoint("https://" + API_HOSTNAME + API_BASEURL)
-                .setRequestInterceptor(requestInterceptor)
-                .setErrorHandler(errorHandler)
+        Retrofit restAdapter = new Retrofit.Builder()
+                .client(client)
+                .baseUrl("https://" + API_HOSTNAME + API_BASEURL)
+                .addConverterFactory(GsonConverterFactory.create())
                 .build();
         service = restAdapter.create(TUMCabeAPIService.class);
     }
@@ -94,173 +87,164 @@ public class TUMCabeClient {
 
     public void createRoom(ChatRoom chatRoom, ChatVerification verification, Callback<ChatRoom> cb) {
         verification.setData(chatRoom);
-        service.createRoom(verification, cb);
+        service.createRoom(verification).enqueue(cb);
     }
 
-    public ChatRoom createRoom(ChatRoom chatRoom, ChatVerification verification) {
+    public ChatRoom createRoom(ChatRoom chatRoom, ChatVerification verification) throws IOException {
         verification.setData(chatRoom);
-        return service.createRoom(verification);
+        return service.createRoom(verification).execute().body();
     }
 
-    public ChatRoom getChatRoom(int id) {
-        return service.getChatRoom(id);
+    public ChatRoom getChatRoom(int id) throws IOException {
+        return service.getChatRoom(id).execute().body();
     }
 
-    public ChatMember createMember(ChatMember chatMember) {
-        return service.createMember(chatMember);
+    public ChatMember createMember(ChatMember chatMember) throws IOException {
+        return service.createMember(chatMember).execute().body();
     }
 
     public void leaveChatRoom(ChatRoom chatRoom, ChatVerification verification, Callback<ChatRoom> cb) {
-        service.leaveChatRoom(chatRoom.getId(), verification, cb);
+        service.leaveChatRoom(chatRoom.getId(), verification).enqueue(cb);
     }
 
-    public ChatMessage sendMessage(int roomId, ChatMessage chatMessageCreate) {
-        return service.sendMessage(roomId, chatMessageCreate);
+    public ChatMessage sendMessage(int roomId, ChatMessage chatMessageCreate) throws IOException {
+        return service.sendMessage(roomId, chatMessageCreate).execute().body();
     }
 
-    public ChatMessage updateMessage(int roomId, ChatMessage message) {
-        return service.updateMessage(roomId, message.getId(), message);
+    public ChatMessage updateMessage(int roomId, ChatMessage message) throws IOException {
+        return service.updateMessage(roomId, message.getId(), message).execute().body();
     }
 
-    public ArrayList<ChatMessage> getMessages(int roomId, long messageId, @Body ChatVerification verification) {
-        return service.getMessages(roomId, messageId, verification);
+    public ArrayList<ChatMessage> getMessages(int roomId, long messageId, @Body ChatVerification verification) throws IOException {
+        return service.getMessages(roomId, messageId, verification).execute().body();
     }
 
-    public ArrayList<ChatMessage> getNewMessages(int roomId, @Body ChatVerification verification) {
-        return service.getNewMessages(roomId, verification);
+    public ArrayList<ChatMessage> getNewMessages(int roomId, @Body ChatVerification verification) throws IOException {
+        return service.getNewMessages(roomId, verification).execute().body();
     }
 
-    public ChatPublicKey uploadPublicKey(int memberId, ChatPublicKey publicKey) {
-        return service.uploadPublicKey(memberId, publicKey);
+    public ChatPublicKey uploadPublicKey(int memberId, ChatPublicKey publicKey) throws IOException {
+        return service.uploadPublicKey(memberId, publicKey).execute().body();
     }
 
-    public List<ChatRoom> getMemberRooms(int memberId, ChatVerification verification) {
-        return service.getMemberRooms(memberId, verification);
+    public List<ChatRoom> getMemberRooms(int memberId, ChatVerification verification) throws IOException {
+        return service.getMemberRooms(memberId, verification).execute().body();
     }
 
     public void getPublicKeysForMember(ChatMember member, Callback<List<ChatPublicKey>> cb) {
-        service.getPublicKeysForMember(member.getId(), cb);
+        service.getPublicKeysForMember(member.getId()).enqueue(cb);
     }
 
     public void uploadRegistrationId(int memberId, ChatRegistrationId regId, Callback<ChatRegistrationId> cb) {
-        service.uploadRegistrationId(memberId, regId, cb);
+        service.uploadRegistrationId(memberId, regId).enqueue(cb);
     }
 
-    public GCMNotification getNotification(int notification) {
-        return service.getNotification(notification);
+    public GCMNotification getNotification(int notification) throws IOException {
+        return service.getNotification(notification).execute().body();
     }
 
     public void confirm(int notification) {
         service.confirm(notification);
     }
 
-    public List<GCMNotificationLocation> getAllLocations() {
-        return service.getAllLocations();
+    public List<GCMNotificationLocation> getAllLocations() throws IOException {
+        return service.getAllLocations().execute().body();
     }
 
-    public GCMNotificationLocation getLocation(int locationId) {
-        return service.getLocation(locationId);
+    public GCMNotificationLocation getLocation(int locationId) throws IOException {
+        return service.getLocation(locationId).execute().body();
     }
 
-    public List<String> putBugReport(BugReport r) {
-        return service.putBugReport(r);
+    public List<String> putBugReport(BugReport r) throws IOException {
+        return service.putBugReport(r).execute().body();
     }
 
     public void putStatistics(Statistics s) {
-        service.putStatistics(s, new Callback<String>() {
-            @Override
-            public void success(String s, retrofit.client.Response response) {
-                //We don't care about any responses
-            }
-
-            @Override
-            public void failure(RetrofitError error) {
-                //Or if this fails
-            }
-        });
+        try {
+            service.putStatistics(s).execute();
+        } catch (IOException e) {
+            //We don't care about any responses or failures
+        }
     }
 
     public void deviceRegister(DeviceRegister verification, Callback<TUMCabeStatus> cb) {
-        service.deviceRegister(verification, cb);
+        service.deviceRegister(verification).enqueue(cb);
     }
 
     public void deviceUploadGcmToken(DeviceUploadGcmToken verification, Callback<TUMCabeStatus> cb) {
-        service.deviceUploadGcmToken(verification, cb);
+        service.deviceUploadGcmToken(verification).enqueue(cb);
     }
 
     private interface TUMCabeAPIService {
 
         //Group chat
         @POST(API_CHAT_ROOMS)
-        void createRoom(@Body ChatVerification verification, Callback<ChatRoom> cb);
-
-        @POST(API_CHAT_ROOMS)
-        ChatRoom createRoom(@Body ChatVerification verification);
+        Call<ChatRoom> createRoom(@Body ChatVerification verification);
 
         @GET(API_CHAT_ROOMS + "{room}")
-        ChatRoom getChatRoom(@Path("room") int id);
+        Call<ChatRoom> getChatRoom(@Path("room") int id);
 
         @POST(API_CHAT_ROOMS + "{room}/leave/")
-        void leaveChatRoom(@Path("room") int roomId, @Body ChatVerification verification, Callback<ChatRoom> cb);
+        Call<ChatRoom> leaveChatRoom(@Path("room") int roomId, @Body ChatVerification verification);
 
         //Get/Update single message
         @PUT(API_CHAT_ROOMS + "{room}/message/")
-        ChatMessage sendMessage(@Path("room") int roomId, @Body ChatMessage message);
+        Call<ChatMessage> sendMessage(@Path("room") int roomId, @Body ChatMessage message);
 
         @PUT(API_CHAT_ROOMS + "{room}/message/{message}/")
-        ChatMessage updateMessage(@Path("room") int roomId, @Path("message") int messageId, @Body ChatMessage message);
+        Call<ChatMessage> updateMessage(@Path("room") int roomId, @Path("message") int messageId, @Body ChatMessage message);
 
         //Get all recent messages or older ones
         @POST(API_CHAT_ROOMS + "{room}/messages/{page}/")
-        ArrayList<ChatMessage> getMessages(@Path("room") int roomId, @Path("page") long messageId, @Body ChatVerification verification);
+        Call<ArrayList<ChatMessage>> getMessages(@Path("room") int roomId, @Path("page") long messageId, @Body ChatVerification verification);
 
         @POST(API_CHAT_ROOMS + "{room}/messages/")
-        ArrayList<ChatMessage> getNewMessages(@Path("room") int roomId, @Body ChatVerification verification);
+        Call<ArrayList<ChatMessage>> getNewMessages(@Path("room") int roomId, @Body ChatVerification verification);
 
         @POST(API_CHAT_MEMBERS)
-        ChatMember createMember(@Body ChatMember chatMember);
+        Call<ChatMember> createMember(@Body ChatMember chatMember);
 
         @GET(API_CHAT_MEMBERS + "{lrz_id}/")
-        ChatMember getMember(@Path("lrz_id") String lrzId);
+        Call<ChatMember> getMember(@Path("lrz_id") String lrzId);
 
         @POST(API_CHAT_MEMBERS + "{memberId}/pubkeys/")
-        ChatPublicKey uploadPublicKey(@Path("memberId") int memberId, @Body ChatPublicKey publicKey);
+        Call<ChatPublicKey> uploadPublicKey(@Path("memberId") int memberId, @Body ChatPublicKey publicKey);
 
         @POST(API_CHAT_MEMBERS + "{memberId}/rooms/")
-        List<ChatRoom> getMemberRooms(@Path("memberId") int memberId, @Body ChatVerification verification);
+        Call<List<ChatRoom>> getMemberRooms(@Path("memberId") int memberId, @Body ChatVerification verification);
 
         @GET(API_CHAT_MEMBERS + "{memberId}/pubkeys/")
-        void getPublicKeysForMember(@Path("memberId") int memberId, Callback<List<ChatPublicKey>> cb);
+        Call<List<ChatPublicKey>> getPublicKeysForMember(@Path("memberId") int memberId);
 
         @POST(API_CHAT_MEMBERS + "{memberId}/registration_ids/add_id")
-        void uploadRegistrationId(@Path("memberId") int memberId, @Body ChatRegistrationId regId, Callback<ChatRegistrationId> cb);
+        Call<ChatRegistrationId> uploadRegistrationId(@Path("memberId") int memberId, @Body ChatRegistrationId regId);
 
         @GET(API_NOTIFICATIONS + "{notification}/")
-        GCMNotification getNotification(@Path("notification") int notification);
+        Call<GCMNotification> getNotification(@Path("notification") int notification);
 
         @GET(API_NOTIFICATIONS + "confirm/{notification}/")
-        String confirm(@Path("notification") int notification);
+        Call<String> confirm(@Path("notification") int notification);
 
         //Locations
         @GET(API_LOCATIONS)
-        List<GCMNotificationLocation> getAllLocations();
+        Call<List<GCMNotificationLocation>> getAllLocations();
 
         @GET(API_LOCATIONS + "{locationId}/")
-        GCMNotificationLocation getLocation(@Path("locationId") int locationId);
+        Call<GCMNotificationLocation> getLocation(@Path("locationId") int locationId);
 
         //Bug Reports
         @PUT(API_REPORT)
-        List<String> putBugReport(@Body BugReport r);
+        Call<List<String>> putBugReport(@Body BugReport r);
 
         //Statistics
         @PUT(API_STATISTICS)
-        void putStatistics(@Body Statistics r, Callback<String> cb);
+        Call<String> putStatistics(@Body Statistics r);
 
         //Device
         @POST(API_DEVICE + "register/")
-        void deviceRegister(@Body DeviceRegister verification, Callback<TUMCabeStatus> cb);
+        Call<TUMCabeStatus> deviceRegister(@Body DeviceRegister verification);
 
         @POST(API_DEVICE + "addGcmToken/")
-        void deviceUploadGcmToken(@Body DeviceUploadGcmToken verification, Callback<TUMCabeStatus> cb);
+        Call<TUMCabeStatus> deviceUploadGcmToken(@Body DeviceUploadGcmToken verification);
     }
 }

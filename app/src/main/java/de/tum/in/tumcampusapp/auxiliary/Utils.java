@@ -173,11 +173,11 @@ public final class Utils {
      * Logs an exception and additional information
      * Use this anywhere in the app when a fatal error occurred.
      * If you can give a better description of what went wrong
-     * use {@link #log(Exception, String)} instead.
+     * use {@link #log(Throwable, String)} instead.
      *
      * @param e Exception (source for message and stack trace)
      */
-    public static void log(Exception e) {
+    public static void log(Throwable e) {
         StringWriter sw = new StringWriter();
         e.printStackTrace(new PrintWriter(sw));
         String s = Thread.currentThread().getStackTrace()[3].getClassName().replaceAll("[a-zA-Z0-9.]+\\.", "");
@@ -188,12 +188,12 @@ public final class Utils {
      * Logs an exception and additional information
      * Use this anywhere in the app when a fatal error occurred.
      * If you can't give an exact error description simply use
-     * {@link #log(Exception)} instead.
+     * {@link #log(Throwable)} instead.
      *
      * @param e       Exception (source for message and stack trace)
      * @param message Additional information for exception message
      */
-    public static void log(Exception e, String message) {
+    public static void log(Throwable e, String message) {
         StringWriter sw = new StringWriter();
         e.printStackTrace(new PrintWriter(sw));
         String s = Thread.currentThread().getStackTrace()[3].getClassName().replaceAll("[a-zA-Z0-9.]+\\.", "");

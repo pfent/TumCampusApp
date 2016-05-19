@@ -3,6 +3,7 @@ package de.tum.in.tumcampusapp.models.managers;
 import android.content.Context;
 import android.database.Cursor;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -17,7 +18,6 @@ import de.tum.in.tumcampusapp.models.ChatRoom;
 import de.tum.in.tumcampusapp.models.ChatVerification;
 import de.tum.in.tumcampusapp.models.LecturesSearchRow;
 import de.tum.in.tumcampusapp.models.TUMCabeClient;
-import retrofit.RetrofitError;
 
 /**
  * TUMOnline cache manager, allows caching of TUMOnline requests
@@ -169,7 +169,7 @@ public class ChatRoomManager extends AbstractManager implements Card.ProvidesCar
                     ChatRoom currentChatRoom = new ChatRoom(roomId);
                     currentChatRoom = TUMCabeClient.getInstance(context).createRoom(currentChatRoom, new ChatVerification(context, currentChatMember));
                     manager.join(currentChatRoom);
-                } catch (RetrofitError e) {
+                } catch (IOException e) {
                     Utils.log(e, "Room already exists");
                 }  catch (NoPrivateKey noPrivateKey) {
                     return;

@@ -10,6 +10,7 @@ import android.widget.CheckBox;
 
 import com.google.gson.Gson;
 
+import java.io.IOException;
 import java.util.List;
 
 import de.tum.in.tumcampusapp.R;
@@ -19,14 +20,13 @@ import de.tum.in.tumcampusapp.auxiliary.AuthenticationManager;
 import de.tum.in.tumcampusapp.auxiliary.Const;
 import de.tum.in.tumcampusapp.auxiliary.NetUtils;
 import de.tum.in.tumcampusapp.auxiliary.Utils;
-import de.tum.in.tumcampusapp.models.TUMCabeClient;
 import de.tum.in.tumcampusapp.models.ChatMember;
 import de.tum.in.tumcampusapp.models.LecturesSearchRow;
 import de.tum.in.tumcampusapp.models.LecturesSearchRowSet;
+import de.tum.in.tumcampusapp.models.TUMCabeClient;
 import de.tum.in.tumcampusapp.models.managers.ChatRoomManager;
 import de.tum.in.tumcampusapp.tumonline.TUMOnlineConst;
 import de.tum.in.tumcampusapp.tumonline.TUMOnlineRequest;
-import retrofit.RetrofitError;
 
 /**
  *
@@ -171,7 +171,7 @@ public class WizNavChatActivity extends ActivityForLoadingInBackground<Void, Cha
             try {
                 // After the user has entered their display name, send a request to the server to create the new member
                 member = TUMCabeClient.getInstance(this).createMember(currentChatMember);
-            } catch (RetrofitError e) {
+            } catch (IOException e) {
                 Utils.log(e);
                 Utils.showToastOnUIThread(this, R.string.error_setup_chat_member);
                 return null;

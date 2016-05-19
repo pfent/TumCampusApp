@@ -15,6 +15,7 @@ import android.util.Base64;
 
 import com.google.gson.Gson;
 
+import java.io.IOException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
@@ -27,7 +28,6 @@ import de.tum.in.tumcampusapp.activities.ChatRoomsActivity;
 import de.tum.in.tumcampusapp.activities.MainActivity;
 import de.tum.in.tumcampusapp.auxiliary.Const;
 import de.tum.in.tumcampusapp.auxiliary.Utils;
-import de.tum.in.tumcampusapp.exceptions.NoPrivateKey;
 import de.tum.in.tumcampusapp.models.ChatMember;
 import de.tum.in.tumcampusapp.models.ChatRoom;
 import de.tum.in.tumcampusapp.models.GCMChat;
@@ -104,14 +104,18 @@ public class Chat extends GenericNotification {
 
         // Get the data necessary for the ChatActivity
         ChatMember member = Utils.getSetting(context, Const.CHAT_MEMBER, ChatMember.class);
-        chatRoom = TUMCabeClient.getInstance(context).getChatRoom(this.extras.room);
+        try {
+            chatRoom = TUMCabeClient.getInstance(context).getChatRoom(this.extras.room);
+        } catch (IOException e) {
+            Utils.log(e);
+        }
 
         ChatMessageManager manager = new ChatMessageManager(context, chatRoom.getId());
         Cursor messages = null;
         try {
             messages = manager.getNewMessages(member, this.extras.message);
-        } catch (NoPrivateKey noPrivateKey) {
-            noPrivateKey.printStackTrace();
+        } catch (Exception e) {
+            Utils.log(e);
         }
 
         // Notify any open chat activity that a message has been received

@@ -15,6 +15,7 @@ import android.widget.EditText;
 
 import com.google.gson.Gson;
 
+import java.io.IOException;
 import java.util.List;
 
 import de.tum.in.tumcampusapp.R;
@@ -24,18 +25,18 @@ import de.tum.in.tumcampusapp.adapters.NoResultsAdapter;
 import de.tum.in.tumcampusapp.auxiliary.Const;
 import de.tum.in.tumcampusapp.auxiliary.Utils;
 import de.tum.in.tumcampusapp.exceptions.NoPrivateKey;
-import de.tum.in.tumcampusapp.models.TUMCabeClient;
 import de.tum.in.tumcampusapp.models.ChatMember;
 import de.tum.in.tumcampusapp.models.ChatRoom;
 import de.tum.in.tumcampusapp.models.ChatVerification;
 import de.tum.in.tumcampusapp.models.LecturesSearchRow;
 import de.tum.in.tumcampusapp.models.LecturesSearchRowSet;
+import de.tum.in.tumcampusapp.models.TUMCabeClient;
 import de.tum.in.tumcampusapp.models.managers.ChatRoomManager;
 import de.tum.in.tumcampusapp.tumonline.TUMOnlineConst;
 import de.tum.in.tumcampusapp.tumonline.TUMOnlineRequest;
-import retrofit.Callback;
-import retrofit.RetrofitError;
-import retrofit.client.Response;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 import se.emilsjolander.stickylistheaders.StickyListHeadersListView;
 
 /**
@@ -112,14 +113,10 @@ public class ChatRoomsActivity extends ActivityForLoadingInBackground<Void, Curs
      * shows dialog to enter display name.
      */
     private void populateCurrentChatMember() {
-        try {
-            if (currentChatMember == null) {
+        if (currentChatMember == null) {
 
-                // Remember this locally
-                currentChatMember = Utils.getSetting(this, Const.CHAT_MEMBER, ChatMember.class);
-            }
-        } catch (RetrofitError e) {
-            Utils.log(e);
+            // Remember this locally
+            currentChatMember = Utils.getSetting(this, Const.CHAT_MEMBER, ChatMember.class);
         }
     }
 
@@ -181,7 +178,7 @@ public class ChatRoomsActivity extends ActivityForLoadingInBackground<Void, Curs
      * Works asynchronously.
      */
     private void createOrJoinChatRoom(String name) {
-        if(this.currentChatMember == null) {
+        if (this.currentChatMember == null) {
             Utils.showToast(this, getString(R.string.chat_not_setup));
             return;
         }
@@ -192,7 +189,8 @@ public class ChatRoomsActivity extends ActivityForLoadingInBackground<Void, Curs
         try {
             TUMCabeClient.getInstance(this).createRoom(currentChatRoom, new ChatVerification(this, this.currentChatMember), new Callback<ChatRoom>() {
                 @Override
-                public void success(ChatRoom newlyCreatedChatRoom, Response arg1) {
+                public void onResponse(Call<ChatRoom> call, Response<ChatRoom> response) {
+                    ChatRoom newlyCreatedChatRoom = response.body();
                     // The POST request is successful: go to room. API should have auto joined it
                     Utils.logv("Success creating&joining chat room: " + newlyCreatedChatRoom.toString());
                     currentChatRoom = newlyCreatedChatRoom;
@@ -214,9 +212,9 @@ public class ChatRoomsActivity extends ActivityForLoadingInBackground<Void, Curs
                 }
 
                 @Override
-                public void failure(RetrofitError arg0) {
+                public void onFailure(Call<ChatRoom> call, Throwable t) {
                     //Something went wrong while joining
-                    Utils.logv("Failure creating/joining chat room - trying to GET it from the server: " + arg0.toString());
+                    Utils.logv("Failure creating/joining chat room - trying to GET it from the server: " + t.toString());
                     Utils.showToastOnUIThread(ChatRoomsActivity.this, R.string.activate_key);
                 }
             });
@@ -242,7 +240,7 @@ public class ChatRoomsActivity extends ActivityForLoadingInBackground<Void, Curs
             try {
                 List<ChatRoom> rooms = TUMCabeClient.getInstance(this).getMemberRooms(currentChatMember.getId(), new ChatVerification(this, currentChatMember));
                 manager.replaceIntoRooms(rooms);
-            } catch (RetrofitError e) {
+            } catch (IOException e) {
                 Utils.log(e);
             } catch (NoPrivateKey e) {
                 this.finish();

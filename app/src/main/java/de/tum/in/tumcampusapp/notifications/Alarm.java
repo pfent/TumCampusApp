@@ -10,6 +10,7 @@ import android.util.Base64;
 
 import com.google.gson.Gson;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
@@ -46,7 +47,11 @@ public class Alarm extends GenericNotification {
         }
 
         //Get data from server
-        this.info = TUMCabeClient.getInstance(this.context).getNotification(this.notification);
+        try {
+            this.info = TUMCabeClient.getInstance(this.context).getNotification(this.notification);
+        } catch (IOException e) {
+            Utils.log(e, "Error while fetching alarm data");
+        }
 
         // parse data
         this.alert = (new Gson()).fromJson(payload, GCMAlert.class);

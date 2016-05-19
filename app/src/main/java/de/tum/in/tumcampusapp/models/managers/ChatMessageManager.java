@@ -15,7 +15,6 @@ import java.util.Locale;
 
 import de.tum.in.tumcampusapp.auxiliary.Const;
 import de.tum.in.tumcampusapp.auxiliary.Utils;
-import de.tum.in.tumcampusapp.exceptions.NoPrivateKey;
 import de.tum.in.tumcampusapp.models.ChatMember;
 import de.tum.in.tumcampusapp.models.ChatMessage;
 import de.tum.in.tumcampusapp.models.ChatVerification;
@@ -243,7 +242,7 @@ public class ChatMessageManager extends AbstractManager {
         db.endTransaction();
     }
 
-    public Cursor getNewMessages(ChatMember member, int messageId) throws NoPrivateKey {
+    public Cursor getNewMessages(ChatMember member, int messageId) throws Exception {
         ArrayList<ChatMessage> messages;
         if (messageId == -1) {
             messages = TUMCabeClient.getInstance(mContext).getNewMessages(mChatRoom, new ChatVerification(mContext, member));

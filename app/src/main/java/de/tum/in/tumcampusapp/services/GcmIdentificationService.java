@@ -19,9 +19,9 @@ import de.tum.in.tumcampusapp.exceptions.NoPrivateKey;
 import de.tum.in.tumcampusapp.models.DeviceUploadGcmToken;
 import de.tum.in.tumcampusapp.models.TUMCabeClient;
 import de.tum.in.tumcampusapp.models.TUMCabeStatus;
-import retrofit.Callback;
-import retrofit.RetrofitError;
-import retrofit.client.Response;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
  * Created by kordianbruck on 12/24/15.
@@ -38,6 +38,29 @@ public class GcmIdentificationService extends InstanceIDListenerService {
 
     public GcmIdentificationService(Context c) {
         mContext = c;
+    }
+
+    /**
+     * Check the device to make sure it has the Google Play Services APK. If
+     * it doesn't, display a dialog that allows users to download the APK from
+     * the Google Play Store or enable it in the device's system settings.
+     */
+    public static boolean checkPlayServices(final Activity a) {
+        final int resultCode = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(a);
+        if (resultCode != ConnectionResult.SUCCESS) {
+            if (GoogleApiAvailability.getInstance().isUserResolvableError(resultCode)) {
+                a.runOnUiThread(new Runnable() {
+                    public void run() {
+                        GoogleApiAvailability.getInstance().getErrorDialog(a, resultCode, PLAY_SERVICES_RESOLUTION_REQUEST).show();
+                    }
+                });
+            } else {
+                Utils.log("This device is not supported by Google Play services.");
+            }
+            return false;
+        }
+        return true;
+
     }
 
     /**
@@ -95,29 +118,6 @@ public class GcmIdentificationService extends InstanceIDListenerService {
             //Update the reg id in steady intervals
             this.checkRegisterIdUpdate(token);
         }
-    }
-
-    /**
-     * Check the device to make sure it has the Google Play Services APK. If
-     * it doesn't, display a dialog that allows users to download the APK from
-     * the Google Play Store or enable it in the device's system settings.
-     */
-    public static boolean checkPlayServices(final Activity a) {
-        final int resultCode = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(a);
-        if (resultCode != ConnectionResult.SUCCESS) {
-            if (GoogleApiAvailability.getInstance().isUserResolvableError(resultCode)) {
-                a.runOnUiThread(new Runnable() {
-                    public void run() {
-                        GoogleApiAvailability.getInstance().getErrorDialog(a, resultCode, PLAY_SERVICES_RESOLUTION_REQUEST).show();
-                    }
-                });
-            } else {
-                Utils.log("This device is not supported by Google Play services.");
-            }
-            return false;
-        }
-        return true;
-
     }
 
     /**
@@ -180,16 +180,16 @@ public class GcmIdentificationService extends InstanceIDListenerService {
 
         TUMCabeClient.getInstance(mContext).deviceUploadGcmToken(dgcm, new Callback<TUMCabeStatus>() {
             @Override
-            public void success(TUMCabeStatus status, Response arg1) {
-                Utils.logv("Success uploading GCM registration id: " + status.getStatus());
+            public void onResponse(Call<TUMCabeStatus> call, Response<TUMCabeStatus> response) {
+                Utils.logv("Success uploading GCM registration id: " + response.body().getStatus());
 
                 // Store in shared preferences the information that the GCM registration id was sent to the TCA server successfully
                 Utils.setInternalSetting(mContext, Const.GCM_REG_ID_SENT_TO_SERVER, true);
             }
 
             @Override
-            public void failure(RetrofitError e) {
-                Utils.log(e, "Failure uploading GCM registration id");
+            public void onFailure(Call<TUMCabeStatus> call, Throwable t) {
+                Utils.log(t, "Failure uploading GCM registration id");
                 Utils.setInternalSetting(mContext, Const.GCM_REG_ID_SENT_TO_SERVER, false);
             }
         });
