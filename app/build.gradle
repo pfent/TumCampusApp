@@ -19,12 +19,11 @@ dependencies {
     compile 'com.android.support:recyclerview-v7:23.4.0'
     compile 'com.android.support:design:23.4.0'
     compile 'com.android.support:multidex:1.0.1'
-    compile 'com.google.android.gms:play-services-gcm:8.4.0'
+    compile 'com.google.android.gms:play-services-gcm:9.0.0'
     compile 'com.android.support:preference-v7:23.4.0'
     compile 'com.google.code.gson:gson:2.6.2'
     compile 'com.nineoldandroids:library:2.4.0'
     compile 'se.emilsjolander:stickylistheaders:2.7.0'
-    compile 'com.squareup.retrofit:retrofit:1.9.0'
     compile 'com.commit451:PhotoView:1.2.4'
     compile 'me.dm7.barcodescanner:zxing:1.8.4'
     compile('org.simpleframework:simple-xml:2.7.1') {
@@ -32,6 +31,7 @@ dependencies {
         exclude group: 'xpp3', module: 'xpp3'
     }
     compile 'de.psdev.licensesdialog:licensesdialog:1.8.1'
+    compile 'com.squareup.retrofit:retrofit:1.9.0'
     compile 'com.squareup.okhttp:okhttp-urlconnection:2.7.5'
     compile 'com.squareup.okhttp:okhttp:2.7.5'
     compile 'com.github.alamkanak:android-week-view:1.2.6'
