@@ -10,11 +10,6 @@ import android.os.AsyncTask;
 import android.util.Pair;
 import android.widget.ImageView;
 
-import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.Request;
-import com.squareup.okhttp.Response;
-import com.squareup.okhttp.ResponseBody;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -29,12 +24,16 @@ import java.util.concurrent.TimeUnit;
 
 import de.tum.in.tumcampusapp.models.managers.CacheManager;
 import de.tum.in.tumcampusapp.trace.G;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 public class NetUtils {
     private static final int HTTP_TIMEOUT = 25000;
     private final Context mContext;
     private final CacheManager cacheManager;
-    private final OkHttpClient client = new OkHttpClient();
+    private final OkHttpClient client;
 
     public NetUtils(Context context) {
         //Manager caches all requests
@@ -42,28 +41,10 @@ public class NetUtils {
         cacheManager = new CacheManager(mContext);
 
         //Set our max wait time for each request
-        client.setConnectTimeout(HTTP_TIMEOUT, TimeUnit.MILLISECONDS);
-        client.setReadTimeout(HTTP_TIMEOUT, TimeUnit.MILLISECONDS);
-    }
-
-    private void setHttpConnectionParams(Request.Builder builder) {
-        //Clearly identify all requests from this app
-        String userAgent = "TCA Client";
-        if (G.appVersion != null && !G.appVersion.equals("unknown")) {
-            userAgent += " " + G.appVersion;
-            if (G.appVersionCode != -1) {
-                userAgent += "/" + G.appVersionCode;
-            }
-        }
-
-        builder.header("User-Agent", userAgent);
-        builder.addHeader("X-DEVICE-ID", AuthenticationManager.getDeviceID(mContext));
-        builder.addHeader("X-ANDROID-VERSION", android.os.Build.VERSION.RELEASE);
-        try {
-            builder.addHeader("X-APP-VERSION", mContext.getPackageManager().getPackageInfo(mContext.getPackageName(), 0).versionName);
-        } catch (PackageManager.NameNotFoundException e) {
-            //Don't log any errors, as we don't really care!
-        }
+        client = new OkHttpClient.Builder()
+                .connectTimeout(HTTP_TIMEOUT, TimeUnit.MILLISECONDS)
+                .readTimeout(HTTP_TIMEOUT, TimeUnit.MILLISECONDS)
+                .build();
     }
 
     public static JSONObject downloadJson(Context context, String url) throws IOException, JSONException {
@@ -129,6 +110,26 @@ public class NetUtils {
             }
         }
         return result.toString();
+    }
+
+    private void setHttpConnectionParams(Request.Builder builder) {
+        //Clearly identify all requests from this app
+        String userAgent = "TCA Client";
+        if (G.appVersion != null && !G.appVersion.equals("unknown")) {
+            userAgent += " " + G.appVersion;
+            if (G.appVersionCode != -1) {
+                userAgent += "/" + G.appVersionCode;
+            }
+        }
+
+        builder.header("User-Agent", userAgent);
+        builder.addHeader("X-DEVICE-ID", AuthenticationManager.getDeviceID(mContext));
+        builder.addHeader("X-ANDROID-VERSION", android.os.Build.VERSION.RELEASE);
+        try {
+            builder.addHeader("X-APP-VERSION", mContext.getPackageManager().getPackageInfo(mContext.getPackageName(), 0).versionName);
+        } catch (PackageManager.NameNotFoundException e) {
+            //Don't log any errors, as we don't really care!
+        }
     }
 
     private ResponseBody getOkHttpResponse(String url) throws IOException {

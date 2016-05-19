@@ -2,9 +2,6 @@ package de.tum.in.tumcampusapp.models;
 
 import android.content.Context;
 
-import com.squareup.okhttp.CertificatePinner;
-import com.squareup.okhttp.OkHttpClient;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,6 +9,8 @@ import javax.net.ssl.SSLPeerUnverifiedException;
 
 import de.tum.in.tumcampusapp.auxiliary.AuthenticationManager;
 import de.tum.in.tumcampusapp.auxiliary.Const;
+import okhttp3.CertificatePinner;
+import okhttp3.OkHttpClient;
 import retrofit.Callback;
 import retrofit.ErrorHandler;
 import retrofit.RequestInterceptor;
@@ -72,8 +71,9 @@ public class TUMCabeClient {
                 .add(API_HOSTNAME, "sha1/7+NhGLCLRZ1RDbncIhu3ksHeOok=") //DFN-Verein PCA Global
                 .add(API_HOSTNAME, "sha1/8GO6fJoWdEqc21TsI81nKY58SU0=") //Deutsche Telekom Root CA 2
                 .build();
-        final OkHttpClient client = new OkHttpClient();
-        client.setCertificatePinner(certificatePinner);
+        final OkHttpClient client = new OkHttpClient.Builder()
+                .certificatePinner(certificatePinner)
+                .build();
 
         RestAdapter restAdapter = new RestAdapter.Builder()
                 .setClient(new OkClient(client))
