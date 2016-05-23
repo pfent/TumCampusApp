@@ -66,7 +66,7 @@ public class NewsManager extends AbstractManager implements Card.ProvidesCard {
         // Load all news sources
         JSONArray jsonArray = net.downloadJsonArray(NEWS_SOURCES_URL, CacheManager.VALIDITY_ONE_MONTH, force);
 
-        if(jsonArray!=null) {
+        if (jsonArray != null) {
             db.beginTransaction();
             try {
                 for (int i = 0; i < jsonArray.length(); i++) {
@@ -85,7 +85,7 @@ public class NewsManager extends AbstractManager implements Card.ProvidesCard {
         // Delete all too old items
         cleanupDb();
 
-        if(jsonArray==null) {
+        if (jsonArray == null) {
             return;
         }
 
@@ -133,7 +133,7 @@ public class NewsManager extends AbstractManager implements Card.ProvidesCard {
         if (c.moveToFirst()) {
             do {
                 int id = c.getInt(0);
-                boolean show = Utils.getSettingBool(context, "news_source_" + id, id<=7);
+                boolean show = Utils.getSettingBool(context, "news_source_" + id, id <= 7);
                 if (show) {
                     if (!and.isEmpty())
                         and += " OR ";
@@ -146,8 +146,8 @@ public class NewsManager extends AbstractManager implements Card.ProvidesCard {
                 "n.link, n.image, n.date, n.created, s.icon, s.title AS source, n.dismissed, " +
                 "(julianday('now') - julianday(date)) AS diff " +
                 "FROM news n, news_sources s " +
-                "WHERE n.src=s.id "+(and.isEmpty()?"":"AND (" + and + ") ") +
-                "AND (s.id < 7 OR s.id > 13 OR s.id=?) "+
+                "WHERE n.src=s.id " + (and.isEmpty() ? "" : "AND (" + and + ") ") +
+                "AND (s.id < 7 OR s.id > 13 OR s.id=?) " +
                 "ORDER BY date DESC", new String[]{selectedNewspread});
     }
 
@@ -266,9 +266,8 @@ public class NewsManager extends AbstractManager implements Card.ProvidesCard {
                     card.apply();
                     i++;
                 } while (cur.moveToNext());
-            } else {
-                cur.close();
             }
+            cur.close();
         }
     }
 }
